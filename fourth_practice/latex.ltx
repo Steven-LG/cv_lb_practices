@@ -1,0 +1,80 @@
+\documentclass{article}
+\usepackage{amsmath}
+
+\begin{document}
+
+\section*{Producto de Vectores}
+
+El producto de vectores puede referirse a diferentes operaciones dependiendo del contexto. Aquí se explican dos de las más comunes: el producto punto (o escalar) y el producto cruz (o vectorial).
+
+\subsection*{Producto Punto (Escalar)}
+
+El producto punto de dos vectores \(\mathbf{a}\) y \(\mathbf{b}\) de la misma dimensión \(n\) es una operación que resulta en un solo número (escalar). Se define como:
+
+\[
+\mathbf{a} \cdot \mathbf{b} = \sum_{i=1}^{n} a_i b_i
+\]
+
+Donde:
+\begin{itemize}
+    \item \(\mathbf{a} = [a_1, a_2, \ldots, a_n]\)
+    \item \(\mathbf{b} = [b_1, b_2, \ldots, b_n]\)
+\end{itemize}
+
+El producto punto se calcula multiplicando los elementos correspondientes de los dos vectores y luego sumando todos los productos.
+
+\subsubsection*{Ejemplo}
+
+Si \(\mathbf{a} = [1, 2, 3]\) y \(\mathbf{b} = [4, 5, 6]\), entonces:
+
+\[
+\mathbf{a} \cdot \mathbf{b} = (1 \cdot 4) + (2 \cdot 5) + (3 \cdot 6) = 4 + 10 + 18 = 32
+\]
+
+\subsection*{Producto Cruz (Vectorial)}
+
+El producto cruz de dos vectores \(\mathbf{a}\) y \(\mathbf{b}\) en el espacio tridimensional (\(\mathbb{R}^3\)) es una operación que resulta en un nuevo vector que es perpendicular a ambos vectores originales. Se define como:
+
+\[
+\mathbf{a} \times \mathbf{b} = \begin{vmatrix}
+\mathbf{i} & \mathbf{j} & \mathbf{k} \\
+a_1 & a_2 & a_3 \\
+b_1 & b_2 & b_3
+\end{vmatrix}
+\]
+
+Donde:
+\begin{itemize}
+    \item \(\mathbf{i}, \mathbf{j}, \mathbf{k}\) son los vectores unitarios en las direcciones \(x\), \(y\) y \(z\) respectivamente.
+    \item \(\mathbf{a} = [a_1, a_2, a_3]\)
+    \item \(\mathbf{b} = [b_1, b_2, b_3]\)
+\end{itemize}
+
+El producto cruz se calcula utilizando el determinante de la matriz formada por los vectores unitarios y los componentes de los vectores \(\mathbf{a}\) y \(\mathbf{b}\).
+
+\subsubsection*{Ejemplo}
+
+Si \(\mathbf{a} = [1, 2, 3]\) y \(\mathbf{b} = [4, 5, 6]\), entonces:
+
+\[
+\mathbf{a} \times \mathbf{b} = \begin{vmatrix}
+\mathbf{i} & \mathbf{j} & \mathbf{k} \\
+1 & 2 & 3 \\
+4 & 5 & 6
+\end{vmatrix} = \mathbf{i}(2 \cdot 6 - 3 \cdot 5) - \mathbf{j}(1 \cdot 6 - 3 \cdot 4) + \mathbf{k}(1 \cdot 5 - 2 \cdot 4)
+\]
+
+\[
+\mathbf{a} \times \mathbf{b} = \mathbf{i}(-3) - \mathbf{j}(-6) + \mathbf{k}(-3) = [-3, 6, -3]
+\]
+
+\subsection*{Resumen}
+
+\begin{itemize}
+    \item \textbf{Producto Punto (Escalar)}: Multiplica los elementos correspondientes de dos vectores y suma los productos. Resulta en un escalar.
+    \item \textbf{Producto Cruz (Vectorial)}: Calcula un vector perpendicular a dos vectores en \(\mathbb{R}^3\) utilizando el determinante de una matriz. Resulta en un vector.
+\end{itemize}
+
+En el contexto de tu código, parece que estás interesado en el producto punto (escalar), ya que estás multiplicando elementos correspondientes de dos vectores y sumando los productos.
+
+\end{document}
