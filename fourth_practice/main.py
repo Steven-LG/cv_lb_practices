@@ -21,6 +21,8 @@ image = cv2.imread(f'{base_practice_folder}/image.png')
 segment_height = 40
 segment_width = 62
 
+log_process = True
+
 start_row, start_col = 100, 150
 
 end_row = start_row + segment_height
@@ -39,20 +41,19 @@ intensity_matrix = np.array([
 sorted_normalized_intensity_matrix = np.sort(intensity_matrix, axis=None).reshape(intensity_matrix.shape)
 unique_sorted_normalized_intensity_matrix = np.unique(sorted_normalized_intensity_matrix)
 
-print(unique_sorted_normalized_intensity_matrix)
-print(sorted_normalized_intensity_matrix)
+save_intensity_histogram = True
 
-min_intensity = np.min(sorted_normalized_intensity_matrix)
-max_intensity = np.max(sorted_normalized_intensity_matrix)
-bins = np.arange(min_intensity, max_intensity + 2) - 0.5
+if save_intensity_histogram:
+    min_intensity = np.min(sorted_normalized_intensity_matrix)
+    max_intensity = np.max(sorted_normalized_intensity_matrix)
 
-counts, bins, patches = plt.hist(sorted_normalized_intensity_matrix.ravel(), bins=bins, color='blue', alpha=0.7)
-plt.xticks(np.arange(min_intensity, max_intensity + 1), rotation=90)
-plt.title('Histograma de Intensidades')
-plt.xlabel('Intensidad')
-plt.ylabel('Frecuencia')
-
-plt.savefig(f'{histogram_output_folder}/segment_deviations.png')
+    bins = np.arange(min_intensity, max_intensity + 2) - 0.5
+    counts, bins, patches = plt.hist(sorted_normalized_intensity_matrix.ravel(), bins=bins, color='blue', alpha=0.7)
+    plt.xticks(np.arange(min_intensity, max_intensity + 1), rotation=90)
+    plt.title('Histograma de Intensidades')
+    plt.xlabel('Intensidad')
+    plt.ylabel('Frecuencia')
+    plt.savefig(f'{histogram_output_folder}/segment_deviations.png')
 
 # Calcular la frecuencia de ocurrencia de cada intensidad
 unique, counts = np.unique(sorted_normalized_intensity_matrix, return_counts=True)
@@ -63,53 +64,30 @@ total_elements = sorted_normalized_intensity_matrix.size
 normalized_intensity_frequency = {k: int(v) for k, v in frequency.items()}
 normalized_intensity_frequency_matrix = np.vectorize(normalized_intensity_frequency.get)(sorted_normalized_intensity_matrix)
 
-print(f'Frecuencia de normalizada de ocurrencia: {normalized_intensity_frequency_matrix}')
-print(intensity_matrix.size)
-
-
 flattened_intensity_matrix = sorted_normalized_intensity_matrix.flatten()
 flattened_frequency_matrix = normalized_intensity_frequency_matrix.flatten()
 unique_values, indices = np.unique(flattened_intensity_matrix, return_index=True)
 unique_frequencies = flattened_frequency_matrix[indices]
 unique_probabilities = unique_frequencies / normalized_intensity_frequency_matrix.size
 
+if log_process:
+    print(unique_sorted_normalized_intensity_matrix)
+    print(sorted_normalized_intensity_matrix)
+    print(f'Frecuencia de normalizada de ocurrencia: {normalized_intensity_frequency_matrix}')
+    print(intensity_matrix.size)
+
 print(f'Resultados: {unique_values}')
 print(f'Frecuencias: {unique_frequencies}')
 print(f'Probabilidades: {unique_probabilities}')
-
-# TODO: SI FUNCIONA
-# intensities_results = np.array([], dtype=int)
-# freq_results = np.array([], dtype=int)
-# p_i_results = np.array([], dtype=float)
-# seen = set()
-
-# # Recorrer la matriz ordenada y normalizada
-# for i in range(sorted_normalized_intensity_matrix.shape[0]):
-#     for j in range(sorted_normalized_intensity_matrix.shape[1]):
-#         value = sorted_normalized_intensity_matrix[i, j]
-#         if value not in seen:
-#             seen.add(value)
-#             freq_value = normalized_intensity_frequency_matrix[i, j]
-#             freq_aparicion = freq_value / normalized_intensity_frequency_matrix.size
-#             intensities_results = np.append(intensities_results, value)
-#             freq_results = np.append(freq_results, freq_value)
-#             p_i_results = np.append(p_i_results, freq_aparicion)
-
-# print(f'Resultados: {intensities_results}')
-# print(f'Frecuencias: {freq_results}')
-# print(f'Probabilidades: {p_i_results}')
-#TODO: SI FUNCIONA
 
 image_mean = np.sum(unique_values * unique_probabilities) #uT
 print(f'Media de la imagen: {image_mean}')
 
 def calculate_variance_relation(image_mean, unique_probabilities, unique_values, intensity_threshold=162):
     thresholded_segment = unique_values <= intensity_threshold
+
     first_belonging_matrix = np.where(thresholded_segment, 1, 0)
     second_belonging_matrix = np.where(thresholded_segment, 0, 1)
-
-    print(f'Matriz de pertenencia 1: {first_belonging_matrix}')
-    print(f'Matriz de pertenencia 2: {second_belonging_matrix}')
 
     flattened_first_belonging = first_belonging_matrix.ravel()
     flattened_second_belonging = second_belonging_matrix.ravel()
@@ -117,22 +95,28 @@ def calculate_variance_relation(image_mean, unique_probabilities, unique_values,
     ocurrence_frequency_of_first_belonging = np.sum(flattened_first_belonging * unique_probabilities)
     ocurrence_frequency_of_second_belonging = np.sum(flattened_second_belonging * unique_probabilities)
 
-    print(f'Suma de productos de los vectores de frecuencia y pertenencia (primera matriz de pertenencia): {ocurrence_frequency_of_first_belonging}')
-    print(f'Suma de productos de los vectores de frecuencia y pertenencia (segunda matriz de pertenencia): {ocurrence_frequency_of_second_belonging}')
-
+    if ocurrence_frequency_of_first_belonging == 0 or ocurrence_frequency_of_second_belonging == 0:
+        return float('inf')  # Evitar división por cero
+    
     mean_first_belonging_matrix = np.sum(unique_values * unique_probabilities * flattened_first_belonging) / ocurrence_frequency_of_first_belonging #u0
     mean_second_belonging_matrix = np.sum(unique_values * unique_probabilities * flattened_second_belonging) / ocurrence_frequency_of_second_belonging #u1
-    print(f'Media de la primera matriz de pertenencia: {mean_first_belonging_matrix}')
-    print(f'Media de la segunda matriz de pertenencia: {mean_second_belonging_matrix}')
 
     binarized_variance = (ocurrence_frequency_of_first_belonging*(mean_first_belonging_matrix - image_mean)**2) + (ocurrence_frequency_of_second_belonging*(mean_second_belonging_matrix - image_mean)**2) 
-    print(f'Varianza binarizada: {binarized_variance}')
 
     image_variance = (unique_values-image_mean)**2 * unique_probabilities
-    print(f'Varianza de la imagen: {np.sum(image_variance)}')
 
     variance_relationship = binarized_variance / np.sum(image_variance) #n = d²_b / d²_T
-    print(f'Relación de varianzas: {variance_relationship}')
+
+    if log_process:
+        print(f'Matriz de pertenencia 1: {first_belonging_matrix}')
+        print(f'Matriz de pertenencia 2: {second_belonging_matrix}')
+        print(f'Suma de productos de los vectores de frecuencia y pertenencia (primera matriz de pertenencia): {ocurrence_frequency_of_first_belonging}')
+        print(f'Suma de productos de los vectores de frecuencia y pertenencia (segunda matriz de pertenencia): {ocurrence_frequency_of_second_belonging}')
+        print(f'Media de la primera matriz de pertenencia: {mean_first_belonging_matrix}')
+        print(f'Media de la segunda matriz de pertenencia: {mean_second_belonging_matrix}')
+        print(f'Varianza binarizada: {binarized_variance}')
+        print(f'Varianza de la imagen: {np.sum(image_variance)}')
+        print(f'Relación de varianzas: {variance_relationship}')
 
     return variance_relationship
     
@@ -150,6 +134,48 @@ def find_optimal_threshold(sorted_normalized_intensity_matrix):
 
     return optimal_threshold, min_rv
 
+def calculate_entropy(probabilities):
+    probabilities = probabilities[probabilities > 0]  # Eliminar ceros para evitar log(0)
+    return -probabilities * np.log10(probabilities)
+
+def calculate_total_entropy(intensity_threshold=162):
+    thresholded_segment = unique_values <= intensity_threshold
+
+    first_belonging_matrix = np.where(thresholded_segment, 1, 0).ravel()
+    second_belonging_matrix = np.where(thresholded_segment, 0, 1).ravel()
+
+    ocurrence_frequency_of_first_belonging = np.sum(first_belonging_matrix * unique_probabilities)
+    ocurrence_frequency_of_second_belonging = np.sum(second_belonging_matrix * unique_probabilities)
+
+    if ocurrence_frequency_of_first_belonging == 0 or ocurrence_frequency_of_second_belonging == 0:
+        return float('inf')  # Evitar división por cero
+    
+    first_belonging_probabilities = calculate_entropy(ocurrence_frequency_of_first_belonging)
+    second_belonging_probabilities = calculate_entropy(ocurrence_frequency_of_second_belonging)
+
+    return np.sum(first_belonging_probabilities + second_belonging_probabilities)
+
+def find_optimal_threshold_min_entropy(intensities):
+    min_intensity = np.min(intensities)
+    max_intensity = np.max(intensities)
+    optimal_threshold = min_intensity
+
+    min_entropy = float('inf')
+
+    for threshold in range(min_intensity, max_intensity + 1):
+        total_entropy = calculate_total_entropy(intensity_threshold=threshold)
+        if total_entropy < min_entropy:
+            min_entropy = total_entropy
+            optimal_threshold = threshold
+        
+    return optimal_threshold, min_entropy    
+
 optimal_threshold, min_variance_relation = find_optimal_threshold(sorted_normalized_intensity_matrix=sorted_normalized_intensity_matrix)
 print(f'Optimal threshold {optimal_threshold}')
 print(f'Min variance relation {min_variance_relation}')
+
+# calculate_variance_relation(image_mean=image_mean, unique_probabilities=unique_probabilities, unique_values=unique_values, intensity_threshold=162)
+optimal_threshold, min_entropy = find_optimal_threshold_min_entropy(intensities=unique_values)
+print(f'Entropía: {calculate_total_entropy()}')
+print(f'Entropía minima optima: {optimal_threshold}')
+print(f'Entropía minima: {min_entropy}')
