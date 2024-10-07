@@ -12,23 +12,19 @@ histogram_output_folder = f'{base_practice_folder}/histograms'
 if not os.path.exists(histogram_output_folder):
     os.makedirs(histogram_output_folder)
 
+images_output_folder = f'{base_practice_folder}/images'
+if not os.path.exists(images_output_folder):
+    os.makedirs(images_output_folder)
+
 def save_channel_to_csv(channel, filename, fmt='%.8f'):
     filepath = os.path.join(csv_output_folder, filename)
     np.savetxt(filepath, channel, delimiter=',', fmt=fmt)
 
-# Get an image and retrieve its intensities
 image = cv2.imread(f'{base_practice_folder}/image.png')
-segment_height = 40
-segment_width = 62
 
-log_process = True
+log_process = False
 
-start_row, start_col = 100, 150
-
-end_row = start_row + segment_height
-end_col = start_col + segment_width
-
-intensity_matrix = cv2.cvtColor(image[0:480, 0:720], cv2.COLOR_BGR2GRAY)
+intensity_matrix = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 # intensity_matrix = np.array([
 #     [153, 175, 160, 176, 159, 149],
 #     [167, 163, 158, 155, 162, 166],
@@ -47,9 +43,8 @@ if save_intensity_histogram:
     min_intensity = np.min(sorted_normalized_intensity_matrix)
     max_intensity = np.max(sorted_normalized_intensity_matrix)
 
-    bins = np.arange(min_intensity, max_intensity + 2) - 0.5
-    counts, bins, patches = plt.hist(sorted_normalized_intensity_matrix.ravel(), bins=bins, color='blue', alpha=0.7)
-    plt.xticks(np.arange(min_intensity, max_intensity + 1), rotation=90)
+    counts, bins, patches = plt.hist(sorted_normalized_intensity_matrix.ravel(), bins=30, color='blue', alpha=0.7)
+    
     plt.title('Histograma de Intensidades')
     plt.xlabel('Intensidad')
     plt.ylabel('Frecuencia')
@@ -77,11 +72,10 @@ if log_process:
     print(intensity_matrix.size)
 
 print(f'Resultados: {unique_values}')
-print(f'Frecuencias: {unique_frequencies}')
-print(f'Probabilidades: {unique_probabilities}')
+print(f'Frecuencias unicas: {unique_frequencies}')
+print(f'Frecuencias de aparición: {unique_probabilities}')
 
 image_mean = np.sum(unique_values * unique_probabilities) #uT
-print(f'Media de la imagen: {image_mean}')
 
 def calculate_variance_relation(image_mean, unique_probabilities, unique_values, intensity_threshold=162):
     thresholded_segment = unique_values <= intensity_threshold
@@ -108,8 +102,6 @@ def calculate_variance_relation(image_mean, unique_probabilities, unique_values,
     variance_relationship = binarized_variance / np.sum(image_variance) #n = d²_b / d²_T
 
     if log_process:
-        print(f'Matriz de pertenencia 1: {first_belonging_matrix}')
-        print(f'Matriz de pertenencia 2: {second_belonging_matrix}')
         print(f'Suma de productos de los vectores de frecuencia y pertenencia (primera matriz de pertenencia): {ocurrence_frequency_of_first_belonging}')
         print(f'Suma de productos de los vectores de frecuencia y pertenencia (segunda matriz de pertenencia): {ocurrence_frequency_of_second_belonging}')
         print(f'Media de la primera matriz de pertenencia: {mean_first_belonging_matrix}')
@@ -117,16 +109,18 @@ def calculate_variance_relation(image_mean, unique_probabilities, unique_values,
         print(f'Varianza binarizada: {binarized_variance}')
         print(f'Varianza de la imagen: {np.sum(image_variance)}')
         print(f'Relación de varianzas: {variance_relationship}')
+        print('\n')
 
     return variance_relationship
     
 def find_optimal_threshold(sorted_normalized_intensity_matrix):
-    min_intensity = np.min(sorted_normalized_intensity_matrix)
-    max_intensity = np.max(sorted_normalized_intensity_matrix)
+    min_intensity = int(np.min(sorted_normalized_intensity_matrix))
+    max_intensity = int(np.max(sorted_normalized_intensity_matrix))
     optimal_threshold = min_intensity
     min_rv = float('inf')
 
     for threshold in range(min_intensity, max_intensity + 1):
+        print(f'Resultados para umbral con intensidad: {threshold}')
         rv = calculate_variance_relation(image_mean=image_mean, unique_probabilities=unique_probabilities, unique_values=unique_values, intensity_threshold=threshold)
         if rv < min_rv:
             min_rv = rv
@@ -153,20 +147,27 @@ def calculate_total_entropy(intensity_threshold=162):
     first_belonging_probabilities = calculate_entropy(ocurrence_frequency_of_first_belonging)
     second_belonging_probabilities = calculate_entropy(ocurrence_frequency_of_second_belonging)
 
+    print(f'Entropía del primer bloque {first_belonging_probabilities}')
+    print(f'Entropía del segundo bloque {second_belonging_probabilities}')
+
     return np.sum(first_belonging_probabilities + second_belonging_probabilities)
 
 def find_optimal_threshold_min_entropy(intensities):
-    min_intensity = np.min(intensities)
-    max_intensity = np.max(intensities)
+    min_intensity = int(np.min(intensities))
+    max_intensity = int(np.max(intensities))
     optimal_threshold = min_intensity
-
     min_entropy = float('inf')
 
     for threshold in range(min_intensity, max_intensity + 1):
+        print(f'Resultados para umbral con intensidad: {threshold}')
         total_entropy = calculate_total_entropy(intensity_threshold=threshold)
+        print(f'Entropía total: {total_entropy}')
         if total_entropy < min_entropy:
+            print(f'Entropía mínima: {total_entropy}')
+            print(f'Umbral óptimo: {threshold}')
             min_entropy = total_entropy
             optimal_threshold = threshold
+        print(f'\n')
         
     return optimal_threshold, min_entropy    
 
@@ -174,67 +175,77 @@ def calculate_global_valley(unique_values, unique_probabilities, image_mean):
     image_variance = (unique_values-image_mean)**2 * unique_probabilities
     standard_deviation = np.sqrt(np.sum(image_variance))
 
-    print(f'First: {1}')
-    print(f'Second: {unique_frequencies.shape[0]-1}')
-
     max_value = np.array([])
     best_threshold = 0
-    for value, index in enumerate(range(0, unique_frequencies.shape[0]-2)):
-        # print(f'{value} - {index}')
-        # print(f'{unique_values[index+1]}')
-        x = ((standard_deviation*(unique_frequencies[index]-unique_frequencies[index+1])) + (standard_deviation*(unique_frequencies[index+2]-unique_frequencies[index+1]))) / 2    
-        # print(f'Primer valor: {unique_frequencies[index]}')
-        # print(f'Segundo valor: {unique_frequencies[index+1]}')    
-        # print(f'This is x: {x}')
-
-        if max_value.size == 0 or np.abs(x) > np.max(max_value):
+    for _, index in enumerate(range(0, unique_frequencies.shape[0]-2)):
+        print(f'Resultados para umbral con intensidad: {unique_values[index+1]}')
+        weighted_frequency_difference = ((standard_deviation*(unique_frequencies[index]-unique_frequencies[index+1])) + (standard_deviation*(unique_frequencies[index+2]-unique_frequencies[index+1]))) / 2    
+        print(f'Diferencia de frecuencia ponderada: {weighted_frequency_difference}')
+        if max_value.size == 0 or np.abs(weighted_frequency_difference) > np.max(max_value):
             best_threshold = unique_values[index+1]
+            print(f'Nuevo mejor umbral: {best_threshold}')
         
-        max_value = np.append(max_value, np.abs(x))
-        # print(f'Best threshold: {best_threshold}')
+        max_value = np.append(max_value, np.abs(weighted_frequency_difference))
+        print(f'\n')
 
     return (np.max(max_value), best_threshold)
 
-# optimal_threshold, min_variance_relation = find_optimal_threshold(sorted_normalized_intensity_matrix=sorted_normalized_intensity_matrix)
-# print(f'Optimal threshold {optimal_threshold}')
-# print(f'Min variance relation {min_variance_relation}')
+print(f'Optimización de umbral por relación de varianzas')
+optimal_threshold, min_variance_relation = find_optimal_threshold(sorted_normalized_intensity_matrix=sorted_normalized_intensity_matrix)
+print(f'Optimal threshold {optimal_threshold}')
+print(f'Min variance relation {min_variance_relation}')
 
-# calculate_variance_relation(image_mean=image_mean, unique_probabilities=unique_probabilities, unique_values=unique_values, intensity_threshold=162)
-# optimal_threshold, min_entropy = find_optimal_threshold_min_entropy(intensities=unique_values)
-# print(f'Entropía: {calculate_total_entropy()}')
-# print(f'Entropía minima optima: {optimal_threshold}')
-# print(f'Entropía minima: {min_entropy}')
+optimal_threshold, min_entropy = find_optimal_threshold_min_entropy(intensities=unique_values)
+print(f'Entropía: {calculate_total_entropy()}')
+print(f'Umbral optimo: {optimal_threshold}')
+print(f'Entropía minima: {min_entropy}')
 
-# max_value, best_threshold = calculate_global_valley(unique_values, unique_probabilities, image_mean)
-# print(f'Max value: {max_value}')
-# print(f'Best threshold: {best_threshold}')
+print(f'Optimización de umbral por valle global')
+max_value, best_threshold = calculate_global_valley(unique_values, unique_probabilities, image_mean)
+print(f'Mejor valor: {max_value}')
+print(f'Mejor umbral: {best_threshold}')
 
 
 def reduce_tones(image, num_tones):
     thresholds = np.linspace(0, 256, num_tones + 1)
     reduced_image = np.zeros_like(image)
 
+    print(f'Para numero de tonos {num_tones}')
+    print(f'Umbrales {thresholds}')
+    print('\n')
     for i in range(num_tones):
         lower_bound = thresholds[i]
         upper_bound = thresholds[i + 1]
-
+    
         print(f'Lower bound: {lower_bound}')
         print(f'Upper bound: {upper_bound}')
+        print('\n')
 
         mask = (image >= lower_bound) & (image < upper_bound)
         reduced_image[mask] = (lower_bound + upper_bound) // 2
 
     return reduced_image
 
-
 three_tone_img = reduce_tones(intensity_matrix, 3).astype(np.uint8)
 four_tone_img = reduce_tones(intensity_matrix, 4).astype(np.uint8)
 eight_tone_img = reduce_tones(intensity_matrix, 8).astype(np.uint8)
 sixteen_tone_img = reduce_tones(intensity_matrix, 16).astype(np.uint8)
 
-cv2.imshow('3 tone', three_tone_img)
-cv2.imshow('4 tone', four_tone_img)
-cv2.imshow('8 tone', eight_tone_img)
-cv2.imshow('16 tone', sixteen_tone_img)
+factor_scale = 75/100
+cv2.imshow('3 tone', cv2.resize(three_tone_img, (0,0), fx=factor_scale, fy=factor_scale))
+cv2.imshow('4 tone', cv2.resize(four_tone_img, (0,0), fx=factor_scale, fy=factor_scale))
+cv2.imshow('8 tone', cv2.resize(eight_tone_img, (0,0), fx=factor_scale, fy=factor_scale))
+cv2.imshow('16 tone', cv2.resize(sixteen_tone_img, (0,0), fx=factor_scale, fy=factor_scale))
+
+cv2.imwrite(f'{images_output_folder}/three_tone_img.png', three_tone_img)
+cv2.imwrite(f'{images_output_folder}/four_tone_img.png', four_tone_img)
+cv2.imwrite(f'{images_output_folder}/eight_tone_img.png', eight_tone_img)
+cv2.imwrite(f'{images_output_folder}/sixteen_tone_img.png', sixteen_tone_img)
+
+save_channel_to_csv(three_tone_img, 'three_tone_img.csv', fmt='%d')
+save_channel_to_csv(four_tone_img, 'four_tone_img.csv', fmt='%d')
+save_channel_to_csv(eight_tone_img, 'eight_tone_img.csv', fmt='%d')
+save_channel_to_csv(sixteen_tone_img, 'sixteen_tone_img.csv', fmt='%d')
+
 cv2.waitKey(0)
 cv2.destroyAllWindows()
