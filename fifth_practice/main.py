@@ -1,6 +1,6 @@
-
 import numpy as np
 import cv2
+import matplotlib.pyplot as plt
 
 intensity_matrix = np.array(
     [
@@ -11,7 +11,6 @@ intensity_matrix = np.array(
         [130, 124, 120, 142, 135]
     ]
 )
-reference_pixel_intensity = np.int64(intensity_matrix[0][0])
 intensity_difference = 10
 
 
@@ -26,7 +25,7 @@ def get_neighbors_coords(matrix, x, y):
 
     return neighbors
 
-def is_px_within_range(c_px_i, c_px_coords, n_obj, n_n, ref_pixel_intensity=reference_pixel_intensity):
+def is_px_within_range(c_px_i, c_px_coords, n_obj, n_n, ref_pixel_intensity):
     if (ref_pixel_intensity - intensity_difference) <= c_px_i <= (ref_pixel_intensity + intensity_difference):
         if not(c_px_coords in n_obj):
             n_obj[c_px_coords] = (c_px_i, n_n)
@@ -37,7 +36,7 @@ def is_px_within_range(c_px_i, c_px_coords, n_obj, n_n, ref_pixel_intensity=refe
     n_obj[c_px_coords] = (c_px_i, -1)
     return False
 
-def recursive_run(c_px_i, c_px_coords, n_obj, n_n, ref_pixel_intensity=reference_pixel_intensity):
+def recursive_run(c_px_i, c_px_coords, n_obj, n_n, ref_pixel_intensity, ref_pixel_coords):
     if not(is_px_within_range(c_px_i, c_px_coords, n_obj, n_n, ref_pixel_intensity=ref_pixel_intensity)):
         return
     
@@ -46,6 +45,9 @@ def recursive_run(c_px_i, c_px_coords, n_obj, n_n, ref_pixel_intensity=reference
     for coords in neighbors_coords:
         if not(coords in n_obj):
             n_obj[coords] = (intensity_matrix[coords], 0)
+        if n_obj[coords][1] == -1:
+            n_obj[coords] = (intensity_matrix[coords], 0)
+        
     
     filtered_keys = [key for key in n_obj.keys() if n_obj[key][1] == 0]
     to_review = sorted(filtered_keys, key=lambda k: (k[0], k[1]))
@@ -55,57 +57,94 @@ def recursive_run(c_px_i, c_px_coords, n_obj, n_n, ref_pixel_intensity=reference
         return
     
     for i in to_review:
-        recursive_run(n_obj[i][0], i, n_obj, n_n)
+        recursive_run(n_obj[i][0], i, n_obj, n_n, ref_pixel_intensity, ref_pixel_coords)
         # print(i)
 
-    if(c_px_coords == (0, 0)):
+    if(c_px_coords == ref_pixel_coords):
         print("NOW Neighborhood done")
         n_n+=1
-
-        # print(n_obj)
 
         new_obj = {
             coords: (intensity, 0 if n_n == -1 else n_n)
             for coords, (intensity, n_n) in n_obj.items()
         }
 
-        # print(new_obj)
-
         new_filtered_keys = [key for key in new_obj.keys() if new_obj[key][1] == 0]
         new_to_review = sorted(new_filtered_keys, key=lambda k: (k[0], k[1]))
 
+        print(new_to_review[0])
+        ref = new_obj[new_to_review[0]][0]
+
+        # ref_obj = {
+        #     coords: (intensity, n_n)
+        #     for coords, (intensity, n_n) in new_obj.items()
+        #     if coords == new_to_review[0]
+        # }
+
+        n_obj[new_to_review[0]] =  (ref, 0)
+
+        recursive_run(ref, new_to_review[0], n_obj, n_n, ref_pixel_intensity=ref, ref_pixel_coords=new_to_review[0])
+
         # recursive_run(c_px_i, c_px_coords, n_obj, -1)
-        for i in new_to_review:
-            ref = new_obj[new_to_review[0]][0]
-            recursive_run(new_obj[i][0], i, new_obj, n_n, ref_pixel_intensity=ref)
+        # for i in new_to_review:
+        #     ref = new_obj[new_to_review[0]][0]
+        
+            # recursive_run(new_obj[i][0], i, new_obj, n_n, ref_pixel_intensity=ref)
         
         # print(i)
 
-        print(new_obj)
+        # print(ref_obj)
         print()
-        # rows, cols = 5, 5  # Size of the original matrix
-        # image = np.zeros((rows, cols), dtype=np.uint8)
-
-        # for (x, y), (_, n_n) in n_obj.items():
-        #     if n_n == 1:
-        #         image[x, y] = 0
-        #     if n_n == -1:
-        #         image[x, y] = 255
-
-        # cv2.imshow('Image', image)
-        # cv2.waitKey(0)
-        # cv2.destroyAllWindows()
+        
 
     pass
+
+# Function to get color based on intensity
+def get_color(intensity, thresholds, colors):
+    for i in range(len(thresholds) - 1):
+        if thresholds[i] <= intensity < thresholds[i + 1]:
+            return colors[i]
+    return colors[-1]  # Assign the last color if intensity equals max_intensity
+
+def generate_color_map(unique_values):
+    cmap = plt.get_cmap('tab10', len(unique_values))  # 'tab10' has 10 distinct colors
+    color_map = {}
+    for idx, value in enumerate(unique_values):
+        color = cmap(idx)[:3]  # Get RGB values (ignore alpha)
+        color = tuple(int(255 * c) for c in color)  # Scale to 0-255
+        color_map[value] = color
+    return color_map
 
 def run(matrix):
     r_px_i = matrix[0][0]
     n_obj = {}
     r_px_coords = (0, 0)
 
-    recursive_run(r_px_i, r_px_coords, n_obj, 1)
-    
-    print()
+    recursive_run(r_px_i, r_px_coords, n_obj, 1, ref_pixel_intensity=r_px_i, ref_pixel_coords=r_px_coords)
+
+    # Size of the original matrix
+    rows, cols = 5, 5  
+    image = np.zeros((rows, cols), dtype=np.uint8)
+
+    unique_n_n = sorted(set(n_n for _, n_n in n_obj.values()))
+
+    n_n_to_color = generate_color_map(unique_n_n)
+
+    # Determine the size of the image
+    max_x = max(x for x, _ in n_obj.keys()) + 1
+    max_y = max(y for _, y in n_obj.keys()) + 1
+
+    # Create a blank RGB image
+    image = np.zeros((max_x, max_y, 3), dtype=np.uint8)
+
+    # Assign colors to the image based on n_n values
+    for (x, y), (_, n_n) in n_obj.items():
+        color = n_n_to_color.get(n_n, (0, 0, 0))  # Default to black if n_n not found
+        image[x, y] = color
+
+    cv2.imshow('n_n Colored Image', image)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
 
 
