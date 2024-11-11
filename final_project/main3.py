@@ -31,41 +31,38 @@ def detect_powdery_mildew(image_path):
     img = cv2.imread(image_path)
     
     # Step 2: Convert to LAB color space
-    # lab = cv2.cvtColor(img, cv2.COLOR_BGR2Lab)
     L, a, b = rgb_to_lab(img)
     
-    # Step 3: Select 'a' channel
-    # a_channel = lab[:, :, 1]
-    
-    # Step 4: Morphological operations
+    # Step 3: Morphological operations on 'a' channel
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
     a_channel_cleaned = cv2.morphologyEx(a.astype(np.uint8), cv2.MORPH_CLOSE, kernel)
     a_channel_eroded = cv2.erode(a_channel_cleaned, kernel, iterations=1)
 
+    # Step 4: Create binary mask for 'a' channel
     _, binary_mask_a = cv2.threshold(a_channel_eroded, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     masked_a_channel = cv2.bitwise_and(a.astype(np.uint8), a.astype(np.uint8), mask=binary_mask_a)
 
-    # blue_channel = img[:, :, 0]
-    b,_,_ = cv2.split(img)
-
-    max_intensity = np.max(b)
+    # Step 5: Process blue channel for disease detection
+    b_channel = img[:, :, 0]  # Blue channel    
+    max_intensity = np.max(b_channel)
     Th = max_intensity - 0.15 * max_intensity  # Threshold calculation
-    _, binary_mask_disease = cv2.threshold(b, Th, 255, cv2.THRESH_BINARY)
+    _, binary_mask_disease = cv2.threshold(b_channel, Th, 255, cv2.THRESH_OTSU)
 
-    max_a = np.max(a_channel_eroded)
-    threshold_value = max_a - 0.15 * max_a
-    _, binary_mask_a = cv2.threshold(a_channel_eroded, threshold_value, 255, cv2.THRESH_BINARY)
-    
+    # Step 6: Combine masks to get final segmented disease area
+    final_mask = cv2.bitwise_and(binary_mask_a, binary_mask_disease)
+
     # Display results
     cv2.imshow('Original Image', img)
-    cv2.imshow('a', a_channel_cleaned)
-    cv2.imshow('blue', b)
-    cv2.imshow('Binary Mask (a Channel)', masked_a_channel)
-    cv2.imshow('Binary Mask (disease)', binary_mask_disease)
+    cv2.imshow('Cleaned a Channel', a_channel_cleaned)
     cv2.imshow('Binary Mask (a Channel)', binary_mask_a)
+    cv2.imshow('Binary Mask (Disease)', binary_mask_disease)
+    cv2.imshow('Masked a channel', masked_a_channel)
+    
+    cv2.imshow('Final Segmented Disease Area', final_mask)
     
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+
 
 # Example usage
 base_folder = 'final_project/'

@@ -1,47 +1,34 @@
+import cv2
 import numpy as np
 
-def get_neighbors(matrix, row, col):
-    rows, cols = matrix.shape
-    neighbors = []
+# Load the image
+base_practice_folder = 'fifth_practice/'
+image = cv2.imread(f'{base_practice_folder}/image.png')
 
-    for i in range(row-1, row+2):
-        for j in range(col-1, col+2):
-            if (0 <= i < rows) and (0 <= j < cols) and (i != row or j != col):
-                neighbors.append((i, j))
+# Convert BGR to HSV
+hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
-    return neighbors
+# Define red color range
+lower_red1 = np.array([0, 70, 50])
+upper_red1 = np.array([10, 255, 255])
+lower_red2 = np.array([170, 70, 50])
+upper_red2 = np.array([180, 255, 255])
 
-def recursive_run(value, coords, n_obj, n_n):
-    # Base case: Check if there are no more neighbors to review
-    to_review = sorted([key for key in n_obj.keys() if n_obj[key][1] == 0], key=lambda k: (k[0], k[1]))
-    if len(to_review) == 0:
-        print("Neighborhood done")
-        return
-    
-    # Debugging: Print the current state
-    print(f"Running recursion for coords: {coords}, value: {value}")
-    
-    # Recursive case: Ensure that the recursion progresses towards the base case
-    new_neighbors = get_neighbors(n_obj, coords[0], coords[1])
-    for neighbor in new_neighbors:
-        if neighbor not in n_n:
-            n_n[neighbor] = n_obj[neighbor]
-            recursive_run(n_obj[neighbor][0], neighbor, n_obj, n_n)
+# Create masks for red color
+mask1 = cv2.inRange(hsv, lower_red1, upper_red1)
+mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
+mask = cv2.bitwise_or(mask1, mask2)
 
-# Example usage
-n_obj = {
-    (0, 0): (np.int64(138), 1),
-    (0, 1): (np.int64(132), 0),
-    (1, 0): (np.int64(145), 0),
-    (1, 1): (np.int64(122), 0)
-}
+# Apply Gaussian Blur to reduce noise
+blurred_mask = cv2.GaussianBlur(mask, (11, 11), 0)
 
-to_review = sorted([key for key in n_obj.keys() if n_obj[key][1] == 0], key=lambda k: (k[0], k[1]))
+# Find borders using Canny edge detection
+edges = cv2.Canny(blurred_mask, threshold1=100, threshold2=200)
 
-if len(to_review) == 0:
-    print("Neighborhood done")
-else:
-    n_n = {}
-    for i in to_review:
-        recursive_run(n_obj[i][0], i, n_obj, n_n)
-        # print(i)
+# Display the results
+cv2.imshow('Original Image', image)
+cv2.imshow('Red Mask', mask)
+cv2.imshow('Blurred Mask', blurred_mask)
+cv2.imshow('Fungus Borders', edges)
+cv2.waitKey(0)
+cv2.destroyAllWindows()

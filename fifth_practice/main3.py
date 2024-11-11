@@ -2,19 +2,15 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 
-base_practice_folder = 'fifth_practice/'
-image = cv2.imread(f'{base_practice_folder}/image.png')
-intensity_matrix = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)[0:51, 0:51]
-
-# intensity_matrix = np.array(
-#     [
-#         [138, 132, 123, 145, 147],
-#         [145, 122, 131, 135, 126],
-#         [150, 147, 138, 123, 145],
-#         [137, 128, 123, 122, 122],
-#         [130, 124, 120, 142, 135]
-#     ]
-# )
+intensity_matrix = np.array(
+    [
+        [138, 132, 123, 145, 147],
+        [145, 122, 131, 135, 126],
+        [150, 147, 138, 123, 145],
+        [137, 128, 123, 122, 122],
+        [130, 124, 120, 142, 135]
+    ]
+)
 
 intensity_difference = 10
 
@@ -29,7 +25,7 @@ def get_neighbors_coords(matrix, x, y):
 
     return neighbors
 
-def is_px_within_range_old(c_px_i, c_px_coords, n_obj, n_n, ref_pixel_intensity):
+def is_px_within_range(c_px_i, c_px_coords, n_obj, n_n, ref_pixel_intensity):
     if (ref_pixel_intensity - intensity_difference) <= c_px_i <= (ref_pixel_intensity + intensity_difference):
         if not(c_px_coords in n_obj):
             n_obj[c_px_coords] = (c_px_i, n_n)
@@ -39,25 +35,6 @@ def is_px_within_range_old(c_px_i, c_px_coords, n_obj, n_n, ref_pixel_intensity)
     
     n_obj[c_px_coords] = (c_px_i, -1)
     return False
-
-def is_px_within_range(c_px_i, c_px_coords, n_obj, n_n, ref_pixel_intensity):
-    # Convert to int16 to prevent overflow
-    c_px_i = np.int16(c_px_i)
-    ref_pixel_intensity = np.int16(ref_pixel_intensity)
-
-    lower_bound = ref_pixel_intensity - intensity_difference
-    upper_bound = ref_pixel_intensity + intensity_difference
-
-    if lower_bound <= c_px_i <= upper_bound:
-        if c_px_coords not in n_obj:
-            n_obj[c_px_coords] = (c_px_i, n_n)
-        if n_obj[c_px_coords][1] == 0:
-            n_obj[c_px_coords] = (c_px_i, n_n)
-        return True
-
-    n_obj[c_px_coords] = (c_px_i, -1)
-    return False
-
 # Function to get color based on intensity
 def get_color(intensity, thresholds, colors):
     for i in range(len(thresholds) - 1):
@@ -248,5 +225,4 @@ def run_i_2(matrix):
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
-# run_i_2(intensity_matrix)
-run(intensity_matrix)
+run_i_2(intensity_matrix)
