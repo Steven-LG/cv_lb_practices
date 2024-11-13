@@ -22,7 +22,8 @@ image_files = [f for f in files if f.endswith(('.JPG', '.png', '.jpeg', '.bmp', 
 # Get the first image file
 image_name = random.choice(image_files)
 
-image = cv2.imread(f'{base_folder}{dataset}{condition}/{image_name}')
+# image = cv2.imread(f'{base_folder}{dataset}{condition}/{image_name}')
+image = cv2.imread(f'{base_folder}/test_2.png')
 
 ## Background removal ##
     
@@ -59,25 +60,37 @@ L, a, b = rgb_to_lab(image)
 inverted_a = cv2.bitwise_not(a)
 
 # Create a structuring element (disk shape with size 5)
-kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-filled_mask = cv2.morphologyEx(inverted_a, cv2.MORPH_CLOSE, kernel)
-eroded_mask = cv2.erode(filled_mask, kernel, iterations=1)
-binary_mask = cv2.morphologyEx(inverted_a, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (31, 31)))
+# kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+# filled_mask = cv2.morphologyEx(inverted_a, cv2.MORPH_CLOSE, kernel)
+# eroded_mask = cv2.morphologyEx(filled_mask, cv2.MORPH_ERODE, kernel)
+# eroded_mask = cv2.erode(filled_mask, kernel, iterations=1)
+binary_mask = cv2.morphologyEx(inverted_a, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (35, 35)))
+print(binary_mask)
+
+# binary_mask = filled_mask
+cv2.imshow("some binary mask", binary_mask)
 
 
 blue_channel = image[:, :, 0]  # Blue channel is at index 0 in BGR format
 cv2.imshow("blue channel", blue_channel)
-# brightness_increase = 50  # Adjust this value for slight enhancement
-# enhanced_blue_channel = cv2.add(blue_channel, brightness_increase)
+brightness_increase = 40  # Adjust this value for slight enhancement
+enhanced_blue_channel = cv2.add(blue_channel, brightness_increase)
 
-blue_channel = cv2.bitwise_and(blue_channel.astype(np.uint8), blue_channel.astype(np.uint8), mask=binary_mask.astype(np.uint8))
+# blue_channel = cv2.bitwise_and(enhanced_blue_channel.astype(np.uint8), enhanced_blue_channel.astype(np.uint8), mask=binary_mask.astype(np.uint8))
+blue_channel = cv2.bitwise_and(enhanced_blue_channel.astype(np.uint8), enhanced_blue_channel.astype(np.uint8), mask=binary_mask.astype(np.uint8))
 
-threshold_value = np.max(blue_channel)-0.15*np.max(blue_channel)
+
+threshold_value = np.max(blue_channel)-0.18*np.max(blue_channel)
 _, binary_mask_disease = cv2.threshold(blue_channel, threshold_value, 255, cv2.THRESH_BINARY)
 
 red_image = np.zeros_like(image)
 red_image[:, :, 2] = 255  # Set the red channel to 255
-final_image = np.where(binary_mask_disease[:, :, np.newaxis] == 255, red_image, image)
+new_red = cv2.bitwise_and(red_image.astype(np.uint8), red_image.astype(np.uint8), mask=binary_mask.astype(np.uint8))
+
+new_image = cv2.bitwise_and(image.astype(np.uint8), image.astype(np.uint8), mask=binary_mask.astype(np.uint8))
+final_image = np.where(binary_mask_disease[:, :, np.newaxis] == 255, new_red, new_image)
+
+print()
 
 cv2.imshow('Original Image', image)
 # cv2.imshow('L', L)
@@ -86,13 +99,20 @@ cv2.imshow('a', inverted_a)
 # cv2.imshow('filled', filled_mask)
 # cv2.imshow('eroded', eroded_mask)
 cv2.imshow('binary_mask', binary_mask)
-# cv2.imshow("blue channel", blue_channel)
+cv2.imshow("blue channel", blue_channel)
 cv2.imshow('binary_mask_disease', binary_mask_disease)
+cv2.imshow("new red", new_red)
 cv2.imshow("final", final_image)
-
 
 cv2.waitKey(0)
 cv2.destroyAllWindows()
+
+
+white_pixel_blue_channel_count = np.sum(blue_channel < 1)
+print(f'Number of white pixels in binary_mask: {white_pixel_blue_channel_count}')
+
+white_pixel_count = np.sum(binary_mask_disease == 255)
+print(f'Number of white pixels in binary_mask_disease: {white_pixel_count}')
 
 print()
 
