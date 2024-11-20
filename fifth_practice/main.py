@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 base_practice_folder = 'fifth_practice/'
 image = cv2.imread(f'{base_practice_folder}/image.png')
-intensity_matrix = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)[0:51, 0:51]
+intensity_matrix = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
 # intensity_matrix = np.array(
 #     [
@@ -244,9 +244,9 @@ def run_i_2(matrix):
         color = n_n_to_color.get(n_n_value, (0, 0, 0))  # Default to black if n_n not found
         image[x, y] = color
 
-    cv2.imshow('n_n Colored Image', image)
+    cv2.imwrite(f'{base_practice_folder}/neighborhood_image.png', image)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
 # run_i_2(intensity_matrix)
-run(intensity_matrix)
+run_i_2(intensity_matrix)
