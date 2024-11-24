@@ -3,7 +3,7 @@ import numpy as np
 
 # Load the image
 base_practice_folder = 'fifth_practice/'
-image = cv2.imread(f'{base_practice_folder}/image_2.jpeg')
+image = cv2.imread(f'{base_practice_folder}/neighborhood_image.png')
 
 # Convert BGR to HSV
 # hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)

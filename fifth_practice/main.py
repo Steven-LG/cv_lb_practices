@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 base_practice_folder = 'fifth_practice/'
 image = cv2.imread(f'{base_practice_folder}/image.png')
-intensity_matrix = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+intensity_matrix = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)[0:50][0:50]
 
 # intensity_matrix = np.array(
 #     [
